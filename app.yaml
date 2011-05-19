@@ -11,6 +11,10 @@ inbound_services:
 - mail
 
 handlers:
+- url: /_ah/mail/.+
+  script: handle_incoming_email.py
+#  login: admin
+    
 - url: .*
   script: main.py
   login: required

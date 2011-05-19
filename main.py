@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from google.appengine.ext import webapp
-from google.appengine.ext.webapp import util
+from google.appengine.ext.webapp.util import run_wsgi_app
 from google.appengine.ext.webapp import template
 from google.appengine.api import memcache
 from models import Event
@@ -26,8 +26,7 @@ def main():
     application = webapp.WSGIApplication([
                                             (r'/$', MainHandler),
                                          ], debug=DEBUG)
-    util.run_wsgi_app(application)
-
+    run_wsgi_app(application)
 
 if __name__ == '__main__':
     main()
