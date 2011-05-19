@@ -1,0 +1,11 @@
+<html>
+<head>
+    <title>Towel</title>
+</head>
+<body>
+    <h3>Towel</h3>
+    {% for event in events %}
+    <p>{{ event.sent }} - {{ event.sender }} - {{ event.message }}</p>
+    {% endfor %}
+</body>
+</html>

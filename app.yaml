@@ -3,6 +3,14 @@ version: 1
 runtime: python
 api_version: 1
 
+builtins:
+- datastore_admin: on
+- admin_redirect: on
+
+inbound_services:
+- mail
+
 handlers:
 - url: .*
   script: main.py
+  login: required
