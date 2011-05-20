@@ -5,6 +5,7 @@ from google.appengine.ext.webapp.util import run_wsgi_app
 from google.appengine.ext.webapp import template
 from google.appengine.api import memcache
 from models import Event
+import gdata
 import os
 import logging
 
@@ -19,7 +20,7 @@ class MainHandler(webapp.RequestHandler):
             page = template.render(path, {"events": events,})
             memcache.add("homepage", page)
         self.response.out.write(page)
-
+        
 def main():
     logging.getLogger().setLevel(logging.DEBUG if DEBUG else logging.WARN)
 

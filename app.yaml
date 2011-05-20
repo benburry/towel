@@ -11,9 +11,9 @@ inbound_services:
 - mail
 
 handlers:
-- url: /_ah/mail/.+
+- url: /_ah/mail/ops@.+
   script: handle_incoming_email.py
-#  login: admin
+  login: admin
     
 - url: .*
   script: main.py
