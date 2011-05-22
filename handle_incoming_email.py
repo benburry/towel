@@ -2,10 +2,15 @@ from google.appengine.ext import webapp
 from google.appengine.ext.webapp.mail_handlers import InboundMailHandler 
 from google.appengine.ext.webapp.util import run_wsgi_app
 from google.appengine.api import memcache
+from google.appengine.api import mail
 from email.utils import parsedate
 from models import Event
 from datetime import datetime
-import gdata
+import time
+import gdata.alt.appengine
+import gdata.calendar
+import gdata.calendar.service
+import atom
 import logging
 import os
 
@@ -22,24 +27,42 @@ class IncomingEventHandler(InboundMailHandler):
             
     def receive(self, mail_message):
         logging.debug("Received a message from: " + mail_message.sender)
-        logging.debug("Date: " + mail_message.date)
+        logging.debug("Message received date: " + mail_message.date)        
+        # logging.debug("time.strftime('%Y-%m-%dT%H:%M:%S.000Z', time.gmtime()): " + time.strftime('%Y-%m-%dT%H:%M:%S.000Z', time.gmtime()))
         
         plaintext_bodies = mail_message.bodies('text/plain').next()
-        event_message = "%s : %s" % (mail_message.subject, plaintext_bodies[1].decode())
-        # event = Event(sender=mail_message.sender,
-        #                      sent=datetime(*parsedate(mail_message.date)[0:6]),
-        #                      message=event_message)
-        #         
-        #         event_entry = gdata.calendar.CalendarEventEntry()
-        #         event_entry.title = atom.Title(text=event.title)
-        #         event_entry.content = atom.Content(text=event.description)
-        #         start_time = '%s.000Z' % event.time.isoformat()
-        #         event_entry.when.append(gdata.calendar.When(start_time=start_time))
-        #         event_entry.where.append(
-        #          gdata.calendar.Where(value_string=event.location))
-                                     
+        
+        event_time = time.mktime(parsedate(mail_message.date))
+        # logging.debug("time.mktime(email.utils.parsedate('%s')): %s" % (mail_message.date, event_time))
+        
+        event = Event(sender=mail_message.sender,
+                         sent=datetime.utcfromtimestamp(event_time),
+                         subject=mail_message.subject,
+                         message=plaintext_bodies[1].decode())
+                
+        event_entry = gdata.calendar.CalendarEventEntry()
+        event_entry.title = atom.Title(text=event.subject)
+        event_entry.content = atom.Content(text=event.message)
+        start_time = time.strftime('%Y-%m-%dT%H:%M:%S.000Z', time.gmtime(event_time))
+        # logging.debug("time.strftime('%%Y-%%m-%%dT%%H:%%M:%%S.000Z', time.gmtime('%s')): %s" % (event_time, start_time))
+        logging.debug("GCal start time: " + start_time)
+       
+        event_entry.when.append(gdata.calendar.When(start_time=start_time))
+        
+        cal_event = self.calendar_client.InsertEvent(event_entry, 
+                                'http://www.google.com/calendar/feeds/%s/private/full' % GCAL_ID)
+        alternate_link = cal_event.GetHtmlLink()
+        logging.debug("Created gcal event at " + alternate_link.href)
+        if alternate_link and alternate_link.href:
+            event.event_url = alternate_link.href
+            
         event.put()
         memcache.delete("homepage")
+        
+        mail.send_mail(sender=mail_message.to,
+                        to=mail_message.sender,
+                        subject="Re: %s" % mail_message.subject,
+                        body="Your event has been stored: %s" % event.event_url)
 
 def main():
     logging.getLogger().setLevel(logging.DEBUG if DEBUG else logging.WARN)
